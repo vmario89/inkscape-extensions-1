@@ -1,86 +1,73 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import sys
-sys.path.append('/usr/share/inkscape/extensions')
-
 from inkex import Effect as InkscapeEffect
 from inkex import etree, addNS
-
 from copy import deepcopy
-
-from simpletransform import computeBBox, applyTransformToNode
-from simplepath import parsePath, translatePath, formatPath
+from inkex.paths import Path
+from inkex.transforms import Transform
+from lxml import etree
 
 class FillRow(InkscapeEffect):
     def __init__(self):
         InkscapeEffect.__init__(self)
-        self.filename = sys.argv[-1]
-
+        self.arg_parser.add_argument("--gap_x", type=int, default="10")
+        self.arg_parser.add_argument("--gap_y",type=int, default="10")
+		
     def effect(self):
-        if len(self.selected) > 0:
-            # bboxes = self.calculate_bboxes(self.selected)
+        if len(self.svg.selected) > 0:
             self.total_height = 0
-            for id, node in self.selected.items():
+            for id, node in self.svg.selected.items():
                 self.fill_row(node)
 
     def fill_row(self, node):
-        max_line_width = self.unittouu('450mm')
-
-        x_gap = y_gap = self.unittouu('10mm')
-        x_start = self.unittouu('3mm')
-        y_start = self.unittouu('1600mm') - self.unittouu('3mm')
-
+        #max_line_width = self.svg.unittouu('450mm')
+        #x_start = self.svg.unittouu('3mm')
+        #y_start = self.svg.unittouu('1600mm') - self.svg.unittouu('3mm')
+        #gap_x = gap_y = self.svg.unittouu('10mm')
+		
+        svg = self.document.getroot()
+        x_start  = 0
+        y_start  = self.svg.unittouu(svg.attrib['height'])
+        max_line_width = self.svg.unittouu(svg.get('width'))
+	
         total_width = 0
         total_height = self.total_height
 
-        group = etree.SubElement(self.current_layer, addNS('g','svg'))
+        group = etree.SubElement(self.svg.get_current_layer(), addNS('g','svg'))
 
-        bbox = computeBBox([node])
-        x, _, y, _ = bbox
-        node_width = x_gap + self.width(bbox)
+        bbox = node.bounding_box()
+        x = bbox.left
+        y = bbox.top
+        node_width = self.options.gap_x + bbox.width
 
         while total_width + node_width < max_line_width:
             node_copy = deepcopy(node)
             group.append(node_copy)
 
             x_dest = x_start + total_width
-            y_dest = y_start - (total_height + self.height(bbox))
+            y_dest = y_start - (total_height + bbox.height)
 
             # translation logic
             if node_copy.tag == addNS('path','svg'):
                 x_delta = x_dest - x
                 y_delta = y_dest - y
 
-                path = parsePath(node_copy.attrib['d'])
-                translatePath(path, x_delta, y_delta)
-                node_copy.attrib['d'] = formatPath(path)
+                path = Path(node_copy.attrib['d'])
+                path.translate(x_delta, y_delta, True)
+                node_copy.attrib['d'] = str(Path(path))
             elif node_copy.tag == addNS('g','svg'):
                 x_delta = x_dest - x
                 y_delta = y_dest - y
 
                 translation_matrix = [[1.0, 0.0, x_delta], [0.0, 1.0, y_delta]]
-                applyTransformToNode(translation_matrix, node_copy)
-
+                Transform(translation_matrix) * node_copy.transform 
             else:
                 node_copy.attrib['x'] = str(x_dest)
                 node_copy.attrib['y'] = str(y_dest)
 
             total_width += node_width
 
-        self.total_height += self.height(computeBBox(group)) + y_gap
+        self.total_height += group.bounding_box().height + self.options.gap_y
 
-    def width(self,bbox):
-        (x1, x2, y1, y2) = bbox
-        width = x2 - x1
-
-        return width
-
-    def height(self,bbox):
-        (x1, x2, y1, y2) = bbox
-        height = y2 - y1
-
-        return height
-
-
-effect = FillRow()
-effect.affect()
+FillRow().run()
