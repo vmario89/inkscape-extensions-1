@@ -1,23 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
-
-    <_name>Fill row</_name>
-    <id>net.mosakowski.inkscape.fill_row</id>
-
-    <dependency type="executable" location="extensions">inkex.py</dependency>
-    <dependency type="executable" location="extensions">fill_row.py</dependency>
-  
-    <param name="help_text" type="description">Fills a row with seleted object. Author: Pawel Mosakowski</param>
-
+    <_name>Fill With Copies</_name>
+    <id>fablabchemnitz.de.fill_row</id>
+    <param name="help_text" type="description">Fills a row with selected paths (works for rectangle objects too). Original author: Pawel Mosakowski. Edited by Mario Voigt (2020).</param>
+	<param name="gap_x" type="float" min="0.0" max="100000.0" _gui-text="Gap in X direction">10.0</param>
+	<param name="gap_y" type="float" min="0.0" max="100000.0" _gui-text="Gap in Y direction">10.0</param>
     <effect>
         <object-type>all</object-type>
         <effects-menu>
-            <submenu _name="Cutter"/>
+            <submenu _name="FabLab Chemnitz">
+				<submenu _name="Nesting/Cut Optimization"/>
+			</submenu>
         </effects-menu>
     </effect>
-
     <script>
-        <command reldir="extensions" interpreter="python">fill_row.py</command>
+        <command reldir="extensions" interpreter="python">fablabchemnitz_fill_row.py</command>
     </script>
-
 </inkscape-extension>
